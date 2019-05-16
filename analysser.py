@@ -65,7 +65,7 @@ def ivt(coords, threshold, frequency):
     
 
 data = load_data('train.mat', ['s4', 's14', 's24', 's34', 's10', 's20'])
-coords = data['s24'][1]
+coords = data['s24'][0][1]
 movement_type = ivt(coords, 3000, 1000)
 print(movement_type[:10])
 plot_data(coords[:-1], movement_type)
