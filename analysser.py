@@ -44,29 +44,55 @@ def load_data(file_name, sid_list):
 def edist(a, b):
     return np.linalg.norm(a - b, axis=1)
 
-# Mean fixation duration
-def mfd(movement_type, freq = 1000):
+def dur(movement_type, freq = 1000):
     durations = [] #in seconds
     for k, g in itertools.groupby(movement_type):
         g = list(g)
         if k and len(g)/freq >= 0.05: #filtering out too short fixations, probably noise
             durations.append(len(g)/ freq)
-    return (np.mean(durations), len(durations)) #mean and number of fixations
+    return durations
 
+# Mean fixation duration
+def mfd(subject):
+    res = [0,0,0,0]
+    known = []
+    unknown = []
+    for row in subject:
+        fixations = dur(ivt(row[1]))
+        if row[0]:
+            known += fixations
+        else:
+            unknown += fixations
+    res[0] = np.mean(known)
+    res[1] = np.mean(unknown)   
+    res[2] = np.std(known)
+    res[3] = np.std(unknown)
+    return res, known, unknown
 
-def ivt(coords, threshold, frequency):
+def agg_mfd(data):
+    known = []
+    unknown = []
+    for sub in ['s4', 's14', 's24', 's34', 's10', 's20']:
+        m = mfd(data[sub])
+        known += m[1]
+        unknown += m[2]
+    return np.mean(known), np.mean(unknown), np.std(known), np.std(unknown)
+
+def ivt(coords, threshold=3000, frequency=1000):
     time = 1 / frequency
     dists = edist(coords[:-1], coords[1:])
     vels = dists / time
     vels = savgol_filter(vels, 29, 2)
-    print(vels[:10])
+    #print(vels[:10])
     movement_type = vels < threshold
     return movement_type
     
 
 data = load_data('train.mat', ['s4', 's14', 's24', 's34', 's10', 's20'])
-coords = data['s24'][0][1]
-movement_type = ivt(coords, 3000, 1000)
-print(movement_type[:10])
+sid = 's4'
+coords = data[sid][0][1]
+movement_type = ivt(coords)
+#print(movement_type[:10])
 plot_data(coords[:-1], movement_type)
-mfd(movement_type, 1000)
+#print(mfd(data[sid]))
+print(agg_mfd(data))
