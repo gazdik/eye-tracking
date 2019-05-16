@@ -1,16 +1,31 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import numpy as np
 from scipy.io import loadmat
+import matplotlib.pyplot as plt
+from scipy.signal import savgol_filter
+import itertools
+
+
+def plot_data(data, movement_type):
+    data_fix = data[movement_type]
+    data_sacc = data[np.logical_not(movement_type)]
+    plt.scatter(data_sacc[:, 0], data_sacc[:, 1], color='b', s=0.01)
+    plt.scatter(data_fix[:, 0], data_fix[:, 1], color='r', s=0.01)
+    plt.savefig('fig.pdf')
+    plt.show()
+
+    
+def plot_clusters(X, labels):
+    colors = itertools.cycle(['b', 'g', 'r', 'c', 'm', 'y', 'k'])
+    for i in np.unique(labels):
+        plt.scatter(X[labels==i, 0], X[labels==i, 1],
+                    c=next(colors), s=0.01)
+    plt.show()
 
 
 def load_data(file_name, sid_list):
-    """
-    Load the data
-    :param file_name: the name of the MATLAB file
-    :param sid_list: list of group IDs
-    :return: dictionary with parsed and filtered data
-    """
     data_mat = loadmat(file_name)
     sids = data_mat['sid'].tolist()[0]
     knowns = data_mat['known'].transpose()
@@ -25,6 +40,23 @@ def load_data(file_name, sid_list):
     return res
 
 
+def edist(a, b):
+    return np.linalg.norm(a - b, axis=1)
 
+
+def ivt(coords, threshold, frequency):
+    time = 1 / frequency
+    dists = edist(coords[:-1], coords[1:])
+    vels = dists / time
+    vels = savgol_filter(vels, 29, 2)
+    print(vels[:10])
+    movement_type = vels < threshold
+    return movement_type
+    
 
 data = load_data('train.mat', ['s4', 's14', 's24', 's34', 's10', 's20'])
+coords = data['s20'][1]
+movement_type = ivt(coords, 3000, 1000)
+print(movement_type[:10])
+plot_data(coords[:-1], movement_type)
+
