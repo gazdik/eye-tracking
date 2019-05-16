@@ -50,7 +50,7 @@ def mfd(movement_type, freq = 1000):
         g = list(g)
         if k and len(g)/freq >= 0.05: #filtering out too short fixations, probably noise
             durations.append(len(g)/ freq)
-    return np.mean(durations)
+    return (np.mean(durations), len(durations)) #mean and number of fixations
 
 
 def ivt(coords, threshold, frequency):
