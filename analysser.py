@@ -25,5 +25,6 @@ def load_data(file_name, sid_list):
     return res
 
 
-data = load_data('train.mat', ['s4', 's14', 's24', 's34', 's10', 's20'])
 
+
+data = load_data('train.mat', ['s4', 's14', 's24', 's34', 's10', 's20'])
