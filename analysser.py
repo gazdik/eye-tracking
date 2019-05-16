@@ -35,8 +35,9 @@ def load_data(file_name, sid_list):
     for sid, known, coord in zip(sids, knowns, coords):
         vals = [known[0], coord[0]]
         if sid[0] in sid_list:
-            res[sid[0]] = vals
-            
+            if sid[0] not in res:
+                res[sid[0]] = []
+            res[sid[0]].append(vals)
     return res
 
 
