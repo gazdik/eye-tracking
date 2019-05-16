@@ -43,6 +43,15 @@ def load_data(file_name, sid_list):
 def edist(a, b):
     return np.linalg.norm(a - b, axis=1)
 
+# Mean fixation duration
+def mfd(movement_type, freq = 1000):
+    durations = [] #in seconds
+    for k, g in itertools.groupby(movement_type):
+        g = list(g)
+        if k and len(g)/freq >= 0.05: #filtering out too short fixations, probably noise
+            durations.append(len(g)/ freq)
+    return np.mean(durations)
+
 
 def ivt(coords, threshold, frequency):
     time = 1 / frequency
@@ -55,8 +64,8 @@ def ivt(coords, threshold, frequency):
     
 
 data = load_data('train.mat', ['s4', 's14', 's24', 's34', 's10', 's20'])
-coords = data['s20'][1]
+coords = data['s24'][1]
 movement_type = ivt(coords, 3000, 1000)
 print(movement_type[:10])
 plot_data(coords[:-1], movement_type)
-
+mfd(movement_type, 1000)
