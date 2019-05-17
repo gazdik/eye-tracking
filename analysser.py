@@ -74,9 +74,10 @@ def dur(movement_type, freq = 1000):
             durations.append(len(g)/ freq)
     return durations
 
+
 # Mean fixation duration
 def mfd(subject):
-    res = [0,0,0,0]
+    res = [0,0,0,0,0,0]
     known = []
     unknown = []
     for row in subject:
@@ -86,9 +87,11 @@ def mfd(subject):
         else:
             unknown += fixations
     res[0] = np.mean(known)
-    res[1] = np.mean(unknown)   
-    res[2] = np.std(known)
-    res[3] = np.std(unknown)
+    res[1] = np.mean(unknown)
+    res[2] = np.mean(known + unknown)
+    res[3] = np.std(known)
+    res[4] = np.std(unknown)
+    res[5] = np.std(known + unknown)
     return res, known, unknown
 
 def agg_mfd(data):
