@@ -78,7 +78,7 @@ def agg_mfd(data):
         unknown += m[2]
     return np.mean(known), np.mean(unknown), np.std(known), np.std(unknown)
 
-def ivt(coords, threshold=3000, frequency=1000):
+def ivt(coords, threshold=25, frequency=1000):
     time = 1 / frequency
     dists = edist(coords[:-1], coords[1:])
     vels = dists / time
