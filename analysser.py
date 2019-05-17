@@ -25,6 +25,28 @@ def plot_clusters(X, labels):
     plt.show()
 
 
+def size2deg(size, distance):
+    return 2 * np.degrees(np.arctan(size * .5 / distance))
+
+
+def deg2size(deg, distance):
+    return 2 * distance * np.tan(np.deg2rad(deg) * .5)
+
+
+def units2size(units, units_range, size_range):
+    units_per_size = size_range / units_range
+    return units * units_per_size
+
+
+def convert_data_to_deg(data):
+    for values in data.values():
+        for known, coords in values:
+            coords[:, 0] = size2deg(units2size(coords[:, 0], 1400, 195), 450)
+            coords[:, 1] = size2deg(units2size(coords[:, 1], 1400, 113), 450)
+
+    return data
+
+
 def load_data(file_name, sid_list):
     data_mat = loadmat(file_name)
     sids = data_mat['sid'].tolist()[0]
