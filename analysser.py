@@ -94,6 +94,47 @@ def mfd(subject):
     res[5] = np.std(known + unknown)
     return res, known, unknown
 
+
+def get_segment_idxs(labels):
+    labels_pad = np.pad(labels, (1, 0), 'edge')[:-1]
+    return np.where(labels_pad != labels)[0]
+
+
+def distances(coords):
+    dists = edist(coords[:-1], coords[1:])
+    dists = np.insert(dists, 0, 0)
+    return dists
+
+
+# Mean Saccade Amplitudes
+def msa(subject):
+    res = [0, 0, 0, 0, 0, 0]
+    known = []
+    unknown = []
+    for row in subject:
+        coords = row[1]
+        mv_types = ivt(coords)
+        dists = distances(coords)
+        mv_types_seg = np.split(mv_types, get_segment_idxs(mv_types))
+        dists_seg = np.split(dists, get_segment_idxs(mv_types))
+
+        for mt, ds in zip(mv_types_seg, dists_seg):
+            if mt[0] == 0:
+                sum = np.sum(ds)
+                if row[0]:
+                    known.append(sum)
+                else:
+                    unknown.append(sum)
+
+    res[0] = np.mean(known)
+    res[1] = np.mean(unknown)
+    res[2] = np.mean(known + unknown)
+    res[3] = np.std(known)
+    res[4] = np.std(unknown)
+    res[5] = np.std(known + unknown)
+    return res, known, unknown
+
+
 def agg_mfd(data):
     known = []
     unknown = []
@@ -103,12 +144,22 @@ def agg_mfd(data):
         unknown += m[2]
     return np.mean(known), np.mean(unknown), np.std(known), np.std(unknown)
 
+
+def agg_msa(data):
+    known = []
+    unknown = []
+    for sub in ['s4', 's14', 's24', 's34', 's10', 's20']:
+        m = msa(data[sub])
+        known += m[1]
+        unknown += m[2]
+    return np.mean(known), np.mean(unknown), np.std(known), np.std(unknown)
+
+
 def ivt(coords, threshold=25, frequency=1000):
     time = 1 / frequency
-    dists = edist(coords[:-1], coords[1:])
+    dists = distances(coords)
     vels = dists / time
-    vels = savgol_filter(vels, 29, 2)
-    #print(vels[:10])
+    # vels = savgol_filter(vels, 29, 2)
     movement_type = vels < threshold
     return movement_type
     
