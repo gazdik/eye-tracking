@@ -13,6 +13,15 @@ FIXATION = 1
 SACCADE = 0
 
 
+def plot_velocities(vels, time_delta, threshold, fname=None):
+    plt.plot(np.arange(len(vels))*time_delta, vels)
+    plt.axhline(threshold, color='r')
+    plt.ylabel(r'Velocity [$^{\circ}$]')
+    plt.xlabel('Time [s]')
+    if fname is not None:
+        plt.savefig('fig/' + fname)
+    plt.show()
+
 def plot_gaze(gaze_data, gaze_labels, sid='unk', mid=0, show=False):
     data_fix = gaze_data[gaze_labels == FIXATION]
     data_sacc = gaze_data[gaze_labels == SACCADE]
@@ -31,7 +40,56 @@ def plot_gaze(gaze_data, gaze_labels, sid='unk', mid=0, show=False):
         plt.show()
     plt.close(fig)
 
-    
+
+def parse_results(res_per_subject, res_aggregated):
+    known_means = []
+    unknown_means = []
+    known_stds = []
+    unknown_stds = []
+    xlabels = []
+
+    for sid, data in res_per_subject.items():
+        vals, _, _ = data
+        known_means.append(vals[0])
+        known_stds.append(vals[3])
+        unknown_means.append(vals[1])
+        unknown_stds.append(vals[4])
+        xlabels.append(sid)
+
+    mean_known, mean_unknown, std_known, std_unknown = res_aggregated
+    xlabels.append('total')
+    known_means.append(mean_known)
+    known_stds.append(std_known)
+    unknown_means.append(mean_unknown)
+    unknown_stds.append(std_unknown)
+
+    return known_means, known_stds, unknown_means, unknown_stds, xlabels
+
+
+def plot_results(res_per_subject, res_aggregated, ylabel='', fname=None):
+    known_means, known_stds, unknown_means, unknown_stds, xlabels = parse_results(res_per_subject, res_aggregated)
+
+    ind = np.arange(len(known_means))
+    width = 0.35
+
+    fig, ax = plt.subplots()
+    ax.bar(ind - width/2, known_means, width, yerr=known_stds, label='known')
+    ax.bar(ind + width/2, unknown_means, width, yerr=unknown_stds, label='unknown')
+
+    ax.set_ylabel(ylabel)
+    ax.set_xticks(ind)
+    ax.set_xticklabels(xlabels)
+    ax.legend()
+
+    fig.tight_layout()
+
+    if fname is not None:
+        plt.savefig('fig/' + fname)
+
+    plt.show()
+
+
+
 def size2deg(size, distance):
     return 2 * np.degrees(np.arctan(size * .5 / distance))
 
@@ -214,7 +272,7 @@ def ivt_trim_fix_onsets(gaze_labels, gaze_coords, dist_thr=2):
     return gaze_labels
 
 
-def ivt_group_fixations(gaze_labels, distances, d_treshold=0.5):
+def ivt_group_fixations(gaze_labels, distances, dist_treshold=0.5):
     i = 0
     j = 0
     while i < (len(gaze_labels) - 1):
@@ -246,7 +304,7 @@ def ivt_group_fixations(gaze_labels, distances, d_treshold=0.5):
 
         # If distance between fixations is short,
         # merge those fixations
-        if dist < d_treshold:
+        if dist < dist_treshold:
             gaze_labels[i:j] = FIXATION
 
         i = j
@@ -254,23 +312,27 @@ def ivt_group_fixations(gaze_labels, distances, d_treshold=0.5):
     return gaze_labels
 
 
-def ivt(coords, threshold=50, frequency=1000):
+def ivt(coords, threshold=50, frequency=1000, plot_vels=False):
     time = 1 / frequency
 
     # Calculate distancies between the points
     dists = distances(coords)
     # Calculate velocities
     vels = dists / time
+    if plot_vels:
+        plot_velocities(vels, time, threshold, 'vels_orig.pdf')
     # Denoising
     vels = savgol_filter(vels, 19, 3)
+    if plot_vels:
+        plot_velocities(vels, time, threshold, 'vels_filtered.pdf')
     # Find fixations and saccades
     gaze_labels = vels < threshold
-    # Group fixations that are too close together
-    gaze_labels = ivt_group_fixations(gaze_labels, dists)
     # Trim onsets of fixations
     gaze_labels = ivt_trim_fix_onsets(gaze_labels, coords)
     # Filter out short fixations
     gaze_labels = ivt_filter_short_fixations(gaze_labels, frequency)
+    # Group fixations that are too close together
+    gaze_labels = ivt_group_fixations(gaze_labels, dists)
 
     return gaze_labels
 
@@ -282,16 +344,20 @@ if __name__ == '__main__':
     # Load data and convert units to degrees
     data = load_data('train.mat', ['s4', 's14', 's24', 's34', 's10', 's20'])
     data = convert_data_to_deg(data)
+    # Workaround: Delete the measurement 36 for the subject s14
+    del data['s14'][36]
 
     # Initialise CSV generator
     csv = CSVGenerator('output.csv')
+    MSAs_dict = {}
+    MFDs_dict = {}
 
     # For each measurement calculate gaze labels
     for sid, measurements in data.items():
         # Calculate Mean Saccade Amplitudes and Mean Fixation Durations
-        MSAs_t = msa(measurements)
-        MFDs_t = mfd(measurements)
-        csv.append_row(sid, MFDs_t, MSAs_t)
+        MSAs_dict[sid] = msa(measurements)
+        MFDs_dict[sid] = mfd(measurements)
+        csv.append_row(sid, MFDs_dict[sid], MSAs_dict[sid])
 
         for mid, measurement in enumerate(measurements):
             known = measurement[0]
@@ -299,30 +365,13 @@ if __name__ == '__main__':
             gaze_labels = ivt(coords)
 
             # Plot gaze labels
-            plot_gaze(coords, gaze_labels, sid, mid)
+            # plot_gaze(coords, gaze_labels, sid, mid)
     csv.close()
 
     # Plot mfd means and msa bar charts
-    msa_mean_known, msa_mean_unknown, msa_std_known, msa_std_unknown = agg_msa(data)
-    indexes = (1, 2)
-    msa_mean = (msa_mean_known, msa_mean_unknown)
-    msa_std = (msa_std_known, msa_std_unknown)
-    plt.bar(indexes, msa_mean, yerr=msa_std)
-    plt.ylabel(r'Amplitude [$^{\circ}$]')
-    plt.xticks(indexes, ('known', 'unknown'))
-    plt.savefig('fig/MSA_agg.pdf')
-    plt.show()
-
-    # Plot mfd means and msa bar charts
-    mfd_mean_known, mfd_mean_unknown, mfd_std_known, mfd_std_unknown = agg_mfd(data)
-    indexes = (1, 2)
-    mfd_mean = (mfd_mean_known, mfd_mean_unknown)
-    mfd_std = (mfd_std_known, mfd_std_unknown)
-    plt.bar(indexes, mfd_mean, yerr=mfd_std)
-    plt.xticks(indexes, ('known', 'unknown'))
-    plt.ylabel('Duration [s]')
-    plt.savefig('fig/MFD_agg.pdf')
-    plt.show()
-
+    plot_results(MSAs_dict, agg_msa(data), r'Amplitude [$^{\circ}$]',
+                 fname='MSA.pdf')
+    plot_results(MFDs_dict, agg_mfd(data), 'Duration [s]',
+                 fname='MFD.pdf')
 
 
