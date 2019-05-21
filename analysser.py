@@ -103,11 +103,11 @@ def units2size(units, units_range, size_range):
     return units * units_per_size
 
 
-def convert_data_to_deg(data):
+def convert_data_to_size(data):
     for values in data.values():
         for known, coords in values:
-            coords[:, 0] = size2deg(units2size(coords[:, 0], 1400, 195), 450)
-            coords[:, 1] = size2deg(units2size(coords[:, 1], 1400, 113), 450)
+            coords[:, 0] = units2size(coords[:, 0], 1400, 195)
+            coords[:, 1] = units2size(coords[:, 1], 1400, 113)
 
     return data
 
@@ -176,7 +176,7 @@ def distances(coords):
 
 
 # Mean Saccade Amplitudes
-def msa(subject):
+def msa(subject, distance_screen=450):
     res = [0, 0, 0, 0, 0, 0]
     known = []
     unknown = []
@@ -184,8 +184,9 @@ def msa(subject):
         coords = row[1]
         mv_types = ivt(coords)
         dists = distances(coords)
+        degs = size2deg(dists, distance_screen)
         mv_types_seg = np.split(mv_types, get_segment_idxs(mv_types))
-        dists_seg = np.split(dists, get_segment_idxs(mv_types))
+        dists_seg = np.split(degs, get_segment_idxs(mv_types))
 
         for mt, ds in zip(mv_types_seg, dists_seg):
             if mt[0] == 0:
@@ -312,13 +313,15 @@ def ivt_group_fixations(gaze_labels, distances, dist_treshold=0.5):
     return gaze_labels
 
 
-def ivt(coords, threshold=50, frequency=1000, plot_vels=False):
+def ivt(coords, threshold=50, frequency=1000, plot_vels=False, distance_screen=450):
     time = 1 / frequency
 
-    # Calculate distancies between the points
+    # Calculate distances between the points
     dists = distances(coords)
+    # Convert milimeters to degrees
+    degs = size2deg(dists, distance_screen)
     # Calculate velocities
-    vels = dists / time
+    vels = degs / time
     if plot_vels:
         plot_velocities(vels, time, threshold, 'vels_orig.pdf')
     # Denoising
@@ -343,7 +346,7 @@ if __name__ == '__main__':
 
     # Load data and convert units to degrees
     data = load_data('train.mat', ['s4', 's14', 's24', 's34', 's10', 's20'])
-    data = convert_data_to_deg(data)
+    data = convert_data_to_size(data)
     # Workaround: Delete the measurement 36 for the subject s14
     del data['s14'][36]
 
