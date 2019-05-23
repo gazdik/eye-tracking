@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# Authors: Peter Gazdik, Silvia Fontfreda, Roman Oravec, Umar Bin Qushem
+
 import os
 import numpy as np
 from scipy.io import loadmat
@@ -21,6 +23,7 @@ def plot_velocities(vels, time_delta, threshold, fname=None):
     if fname is not None:
         plt.savefig('fig/' + fname)
     plt.show()
+
 
 def plot_gaze(gaze_data, gaze_labels, sid='unk', mid=0, show=False):
     data_fix = gaze_data[gaze_labels == FIXATION]
@@ -87,7 +90,6 @@ def plot_results(res_per_subject, res_aggregated, ylabel='', fname=None):
         plt.savefig('fig/' + fname)
 
     plt.show()
-
 
 
 def size2deg(size, distance):
@@ -342,12 +344,13 @@ def ivt(coords, threshold=50, frequency=1000, plot_vels=False, distance_screen=4
 
 if __name__ == '__main__':
     # Create a directory for figures
-    os.makedirs('fig', exist_ok=True)
+    # os.makedirs('fig', exist_ok=True)
 
     # Load data and convert units to degrees
     data = load_data('train.mat', ['s4', 's14', 's24', 's34', 's10', 's20'])
     data = convert_data_to_size(data)
     # Workaround: Delete the measurement 36 for the subject s14
+    # because this measurement does not seem to be valid
     del data['s14'][36]
 
     # Initialise CSV generator
@@ -372,9 +375,7 @@ if __name__ == '__main__':
     csv.close()
 
     # Plot mfd means and msa bar charts
-    plot_results(MSAs_dict, agg_msa(data), r'Amplitude [$^{\circ}$]',
-                 fname='MSA.pdf')
-    plot_results(MFDs_dict, agg_mfd(data), 'Duration [s]',
-                 fname='MFD.pdf')
+    plot_results(MSAs_dict, agg_msa(data), r'Amplitude [$^{\circ}$]')
+    plot_results(MFDs_dict, agg_mfd(data), 'Duration [s]')
 
 

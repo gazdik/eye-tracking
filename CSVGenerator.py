@@ -1,5 +1,6 @@
-import csv
+# Authors: Peter Gazdik, Silvia Fontfreda, Roman Oravec, Umar Bin Qushem
 
+import csv
 
 class CSVGenerator:
     def __init__(self, file_name):
