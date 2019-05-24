@@ -7,6 +7,10 @@ class CSVGenerator:
         self.fd = open(file_name, 'w')
         self.writer = csv.writer(self.fd, delimiter=' ')
 
+
+    def header(self, header):
+        self.writer.writerow(header)
+
     def append_row(self, sid, MFDs_t, MSAs_t):
         MFDs = MFDs_t[0]
 

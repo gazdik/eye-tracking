@@ -354,7 +354,8 @@ if __name__ == '__main__':
     del data['s14'][36]
 
     # Initialise CSV generator
-    csv = CSVGenerator('output.csv')
+    csv = CSVGenerator('ProjectGroup4.csv')
+    csv.header(['subject_id', 'MFD_true', 'MFD_SD_true', 'MFD_false', 'MFD_SD_false', 'MSA_true', 'MSA_SD_true' ,'MSA_false', 'MSA_SD_false', 'MFD_overall', 'MFD_overall_SD', 'MSA_overall', 'MSA_overall_SD'])
     MSAs_dict = {}
     MFDs_dict = {}
 
